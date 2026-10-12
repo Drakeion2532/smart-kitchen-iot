@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Kitchen Monitor</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155}
+h1{font-size:20px;margin:0}main{padding:20px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--card);border-radius:12px;padding:16px}.v{font-size:32px;font-weight:700}.l{color:var(--muted);font-size:13px}
+.wide{grid-column:1/-1}#state{font-size:18px;font-weight:700;padding:6px 14px;border-radius:99px;background:var(--ok);color:#052e16}
+#state.cooking{background:var(--warn);color:#451a03}#state.gas_leak,#state.fire,#state.unattended{background:var(--bad);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:6px;border-bottom:1px solid #334155}
+.bar{height:10px;background:#334155;border-radius:6px;overflow:hidden}.bar>div{height:100%;background:var(--ok)}
+</style></head><body>
+<header><h1>🍳 Smart Kitchen Monitor</h1><span id="state">waiting…</span></header>
+<main>
+<div class="card"><div class="l">Temperature</div><div class="v" id="temp">–</div></div>
+<div class="card"><div class="l">Humidity</div><div class="v" id="hum">–</div></div>
+<div class="card"><div class="l">LPG (MQ-2)</div><div class="v" id="lpg">–</div></div>
+<div class="card"><div class="l">Air quality (MQ-135)</div><div class="v" id="aq">–</div></div>
+<div class="card"><div class="l">Presence</div><div class="v" id="motion">–</div></div>
+<div class="card"><div class="l">Smart container</div><div class="v" id="cont">–</div><div class="bar"><div id="contbar"></div></div><div class="l" id="continfo"></div></div>
+<div class="card wide"><div class="l">Last 10 minutes (each line auto-scaled)</div><canvas id="chart" style="width:100%;height:260px"></canvas></div>
+<div class="card wide"><div class="l">Hazard probabilities (ML model)</div><canvas id="probs" style="width:100%;height:170px"></canvas></div>
+<div class="card wide"><div class="l">Alerts</div><table id="alerts"></table></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+// dependency-free canvas charts (works offline on a local network)
+function lineChart(cv, series){const c=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=cv.clientHeight*2;c.clearRect(0,0,W,H);
+ c.font='22px system-ui';let lx=20;
+ series.forEach(s=>{const v=s.data;if(!v.length)return;const mn=Math.min(...v),mx=Math.max(...v)+1e-9;c.strokeStyle=s.color;c.lineWidth=3;c.beginPath();
+  v.forEach((y,i)=>{const X=40+i*(W-60)/Math.max(1,v.length-1),Y=H-30-(y-mn)/(mx-mn)*(H-80);i?c.lineTo(X,Y):c.moveTo(X,Y)});c.stroke();
+  c.fillStyle=s.color;const t=`${s.label}: ${v[v.length-1].toFixed(0)} (min ${mn.toFixed(0)}, max ${mx.toFixed(0)})`;c.fillText(t,lx,30);lx+=c.measureText(t).width+40;});}
+function barChart(cv, probs){const c=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=cv.clientHeight*2;c.clearRect(0,0,W,H);
+ const k=Object.keys(probs),h=H/k.length;c.font='22px system-ui';
+ k.forEach((n,i)=>{const p=probs[n];c.fillStyle=['gas_leak','fire','unattended'].includes(n)&&p>.5?'#ef4444':'#38bdf8';
+  c.fillRect(200,i*h+6,(W-300)*p,h-12);c.fillStyle='#e2e8f0';c.fillText(n,10,i*h+h/2+8);c.fillText((p*100).toFixed(1)+'%',210+(W-300)*p,i*h+h/2+8);});}
+async function tick(){
+ try{
+  const s=await (await fetch('/api/latest')).json(); if(!s.reading) return;
+  const r=s.reading; $('temp').textContent=r.temp_c.toFixed(0)+' °C'; $('hum').textContent=r.humidity.toFixed(0)+' %';
+  $('lpg').textContent=r.lpg_ppm.toFixed(0)+' ppm'; $('aq').textContent=r.aq_ppm.toFixed(0)+' ppm';
+  $('motion').textContent=r.motion?'Someone here':'Empty';
+  $('state').textContent=s.state.replace('_',' ').toUpperCase(); $('state').className=s.state;
+  barChart($('probs'), s.probs);
+  const h=await (await fetch('/api/history?minutes=10')).json();
+  lineChart($('chart'), [{label:'Temp °C',color:'#f97316',data:h.map(x=>x.temp_c)},
+   {label:'LPG ppm',color:'#ef4444',data:h.map(x=>x.lpg_ppm)},{label:'Air quality ppm',color:'#a78bfa',data:h.map(x=>x.aq_ppm)}]);
+  const inv=await (await fetch('/api/inventory')).json();
+  if(inv.level_g!==null){$('cont').textContent=inv.level_g.toFixed(0)+' g';$('contbar').style.width=Math.min(100,inv.percent)+'%';
+   $('continfo').textContent=(inv.days_left?inv.days_left+' days left · ':'')+(inv.reorder?'⚠ reorder now':'stock ok');}
+  const a=await (await fetch('/api/alerts?limit=8')).json();
+  $('alerts').innerHTML=a.map(x=>`<tr><td>${new Date(x.ts*1000).toLocaleTimeString()}</td><td>${x.kind}</td><td>${x.message}</td></tr>`).join('')||'<tr><td>No alerts</td></tr>';
+ }catch(e){}
+}
+setInterval(tick,1000);tick();
+</script></body></html>
