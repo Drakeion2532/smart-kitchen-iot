@@ -1,5 +1,7 @@
 # IoT-Powered Smart Kitchen: Safety & Efficiency
 
+[![tests](https://github.com/Drakeion2532/smart-kitchen-iot/actions/workflows/tests.yml/badge.svg)](https://github.com/Drakeion2532/smart-kitchen-iot/actions/workflows/tests.yml)
+
 An end-to-end smart-kitchen system that covers **Arduino Uno + ESP8266 firmware**, a **cloud backend with an ML hazard detector**, and a **live dashboard**. It catches LPG leaks, fire and smoke, and *unattended cooking*, runs the exhaust fan automatically, and tracks a smart container so supplies can be reordered before they run out.
 
 Reference implementation of the paper **"IoT-Powered Smart Kitchen Systems for Enhanced Efficiency and Safety"** by V. Gaikwad, P. Sahani, S. Khan, R. Sakpal, **S. Punde**, N. Shinde (Vishwakarma Institute of Technology, Pune).
@@ -9,7 +11,7 @@ Reference implementation of the paper **"IoT-Powered Smart Kitchen Systems for E
 
 ## The problem
 
-Cooking is the leading cause of home fires, and LPG leaks are a daily risk in Indian kitchens. Single-threshold alarms fire late, because LPG has to reach 1,000+ ppm before they trigger. They also fire falsely when a burner puffs during ignition, and they can't tell "someone is cooking" apart from "the stove has been on for 20 minutes with nobody home".
+Cooking is the leading cause of home fires in US fire statistics (NFPA), and LPG leaks are a daily risk in Indian kitchens. Single-threshold alarms fire late, because LPG has to reach 1,000+ ppm before they trigger. They also fire falsely when a burner puffs during ignition, and they can't tell "someone is cooking" apart from "the stove has been on for 20 minutes with nobody home".
 
 ## Architecture
 
