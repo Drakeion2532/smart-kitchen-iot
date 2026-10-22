@@ -1,31 +1,31 @@
 {
   "ml": {
-    "macro_f1": 0.9881,
+    "macro_f1": 0.9855,
     "per_class_f1": {
-      "normal": 0.9924,
-      "cooking": 0.9883,
-      "gas_leak": 0.9878,
-      "fire": 0.9851,
-      "unattended": 0.987
+      "normal": 0.9898,
+      "cooking": 0.9922,
+      "gas_leak": 0.9894,
+      "fire": 0.9886,
+      "unattended": 0.9676
     },
     "detection_latency": {
       "gas_leak": {
-        "median_s": 14.0,
+        "median_s": 12.0,
         "episodes": 10,
         "missed": 0
       },
       "fire": {
-        "median_s": 9.0,
+        "median_s": 7.0,
         "episodes": 9,
         "missed": 0
       },
       "unattended": {
-        "median_s": 4.0,
+        "median_s": 57.0,
         "episodes": 15,
         "missed": 0
       }
     },
-    "false_alarms_per_day": 4.72
+    "false_alarms_per_day": 0.79
   },
   "rules": {
     "macro_f1": 0.541,
@@ -56,7 +56,7 @@
     "false_alarms_per_day": 25.98
   },
   "confirm_window_tradeoff": {
-    "confirm_3s": {
+    "confirm_3s_all_hazards": {
       "latency": {
         "gas_leak": {
           "median_s": 6.5,
@@ -76,7 +76,7 @@
       },
       "false_alarms_per_day": 15.75
     },
-    "confirm_5s": {
+    "confirm_5s_all_hazards": {
       "latency": {
         "gas_leak": {
           "median_s": 9.0,
@@ -96,7 +96,7 @@
       },
       "false_alarms_per_day": 10.23
     },
-    "confirm_10s": {
+    "confirm_10s_all_hazards": {
       "latency": {
         "gas_leak": {
           "median_s": 14.0,
@@ -115,6 +115,26 @@
         }
       },
       "false_alarms_per_day": 4.72
+    },
+    "per_hazard_gas_leak8s_fire8s_unattended60s": {
+      "latency": {
+        "gas_leak": {
+          "median_s": 12.0,
+          "episodes": 10,
+          "missed": 0
+        },
+        "fire": {
+          "median_s": 7.0,
+          "episodes": 9,
+          "missed": 0
+        },
+        "unattended": {
+          "median_s": 57.0,
+          "episodes": 15,
+          "missed": 0
+        }
+      },
+      "false_alarms_per_day": 0.79
     }
   },
   "confusion_ml": {
@@ -127,39 +147,39 @@
     ],
     "matrix": [
       [
-        67181,
-        11,
+        67128,
+        64,
         0,
         0,
         0
       ],
       [
-        659,
-        41629,
+        332,
+        42040,
         0,
         0,
-        262
+        178
       ],
       [
-        159,
-        0,
-        6446,
+        136,
+        3,
+        6466,
         0,
         0
       ],
       [
-        78,
+        60,
         0,
         0,
-        2575,
+        2593,
         0
       ],
       [
-        117,
-        52,
+        786,
+        82,
         0,
         0,
-        16307
+        15608
       ]
     ]
   }

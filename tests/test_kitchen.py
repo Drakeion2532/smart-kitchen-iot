@@ -48,3 +48,27 @@ def test_api_end_to_end(tmp_path, monkeypatch):
     assert "FAN:1" in r["commands"]
     assert c.get("/api/alerts").json()[0]["kind"] == "gas_leak"
     assert c.get("/api/inventory?device=t1").json()["level_g"] is not None
+
+
+def test_hazard_specific_confirmation_windows():
+    import pandas as pd
+    from kitchen.train_detector import confirm
+    pred = pd.Series(["cooking"] * 5 + ["gas_leak"] * 8 + ["unattended"] * 59 + ["cooking"] * 3)
+    out = confirm(pred, {"gas_leak": 8, "fire": 8, "unattended": 60})
+    assert (out[5:12] == "normal").all() and out[12] == "gas_leak"     # alarms on the 8th second
+    assert not (out == "unattended").any()                           # 59 s of "unattended" is not enough
+
+
+def test_live_engine_uses_per_hazard_windows(tmp_path, monkeypatch):
+    """A cook stepping away briefly must not set off the siren; a gas leak must, within 8 readings."""
+    monkeypatch.setenv("KITCHEN_DB", str(tmp_path / "k.db"))
+    import importlib
+    import kitchen.api as api
+    importlib.reload(api)
+    eng = api.engine
+    reading = api.Reading(temp_c=30, humidity=50, lpg_ppm=100, aq_ppm=400, motion=False)
+    script = iter(["unattended"] * 30 + ["cooking"] + ["gas_leak"] * 8)
+    monkeypatch.setattr(eng, "classify", lambda device: (next(script), {}))
+    states = [eng.ingest("t2", reading)["state"] for _ in range(39)]
+    assert "unattended" not in states                                 # 30 s is below the 60 s window
+    assert states[37] != "gas_leak" and states[38] == "gas_leak"      # 8th consecutive gas reading

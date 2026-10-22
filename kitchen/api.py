@@ -37,7 +37,10 @@ HAZARDS = {"gas_leak": "LPG leak detected – close the regulator, do not switch
            "fire": "Fire / smoke detected – evacuate and use extinguisher",
            "unattended": "Stove on with nobody in the kitchen for 5+ minutes"}
 BUFFER = 1800                     # seconds of history kept per device for features
-CONFIRM = 10                      # consecutive agreeing predictions before alerting
+# consecutive agreeing predictions (1 per second) before a state is accepted; per hazard, see
+# train_detector.py: gas/fire confirm fast, "unattended" slowly to avoid nagging a cook who stepped away
+CONFIRM = {"gas_leak": 8, "fire": 8, "unattended": 60}
+CONFIRM_DEFAULT = 10              # for returning to normal / cooking
 ALERT_COOLDOWN = 120              # seconds between repeated alerts of the same type
 CONTAINER_FULL_G = 2000.0
 
@@ -56,7 +59,7 @@ class Engine:
     def __init__(self, db_path=DB_PATH):
         self.lock = threading.Lock()
         self.buf = defaultdict(lambda: deque(maxlen=BUFFER))
-        self.recent = defaultdict(lambda: deque(maxlen=CONFIRM))
+        self.run = {}                                  # device -> (raw state, consecutive count)
         self.last_alert = {}
         self.state = {}
         bundle = joblib.load(MODEL_PATH) if MODEL_PATH.exists() else None
@@ -89,9 +92,11 @@ class Engine:
         with self.lock:
             self.buf[device].append(row)
             raw_state, probs = self.classify(device)
-            self.recent[device].append(raw_state)
-            confirmed = raw_state if len(set(self.recent[device])) == 1 and \
-                len(self.recent[device]) == CONFIRM else self.state.get(device, {}).get("state", "normal")
+            prev_raw, n = self.run.get(device, (None, 0))
+            n = n + 1 if raw_state == prev_raw else 1
+            self.run[device] = (raw_state, n)
+            confirmed = raw_state if n >= CONFIRM.get(raw_state, CONFIRM_DEFAULT) \
+                else self.state.get(device, {}).get("state", "normal")
             commands, alert = [], None
             if confirmed in HAZARDS:
                 commands.append("FAN:1")

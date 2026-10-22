@@ -21,7 +21,10 @@ from .simulator import LABELS
 
 ROOT = Path(__file__).resolve().parents[1]
 HAZARDS = ["gas_leak", "fire", "unattended"]
-CONFIRM = 10  # seconds of agreement before an alert (see tradeoff in the report)
+# Seconds of agreeing predictions before an alarm, per hazard. Gas and fire are life-threatening,
+# so they confirm fast; "unattended" already means 5+ minutes with nobody at the stove, so a
+# 60 s confirmation costs nothing and removes most false alarms from cooks stepping away.
+CONFIRM = {"gas_leak": 8, "fire": 8, "unattended": 60}
 
 
 def latency_and_false_alarms(df, pred):
@@ -45,6 +48,16 @@ def latency_and_false_alarms(df, pred):
                  "missed": missed[h]} for h, v in lat.items()}, round(fa_per_day, 2))
 
 
+def confirm(pred: pd.Series, windows: dict) -> pd.Series:
+    """Raise a hazard only once it has been predicted for `windows[hazard]` consecutive seconds."""
+    out = pd.Series("normal", index=pred.index, dtype=object)
+    for cls in pred.unique():
+        is_c = pred.eq(cls)
+        run = is_c.groupby((~is_c).cumsum()).cumsum()        # length of the current run of `cls`
+        out[is_c & (run >= windows.get(cls, 1))] = cls
+    return out
+
+
 def main():
     df = pd.read_csv(ROOT / "data" / "kitchen_sensor_dataset.csv.gz", parse_dates=["ts"])
     X = add_features(df)
@@ -59,16 +72,14 @@ def main():
     ml = pd.Series(clf.predict(X.iloc[te]), index=test.index)
     rules = rule_based(df).iloc[te]
 
-    def confirm(pred, k):
-        """Only raise a state after k identical consecutive predictions."""
-        ok = pd.concat([pred.eq(pred.shift(i)) for i in range(1, k)], axis=1).all(axis=1)
-        return pred.where(ok, "normal")
-
     tradeoff = {}
     for k in (3, 5, 10):
-        lat, fa = latency_and_false_alarms(test, confirm(ml, k))
-        tradeoff[f"confirm_{k}s"] = {"latency": lat, "false_alarms_per_day": fa}
+        lat, fa = latency_and_false_alarms(test, confirm(ml, {h: k for h in HAZARDS}))
+        tradeoff[f"confirm_{k}s_all_hazards"] = {"latency": lat, "false_alarms_per_day": fa}
     ml_s = confirm(ml, CONFIRM)
+    lat, fa = latency_and_false_alarms(test, ml_s)
+    tradeoff["per_hazard_" + "_".join(f"{h}{k}s" for h, k in CONFIRM.items())] = {
+        "latency": lat, "false_alarms_per_day": fa}
 
     report = {}
     for name, p in [("ml", ml_s), ("rules", rules)]:

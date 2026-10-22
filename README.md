@@ -7,7 +7,7 @@ An end-to-end smart-kitchen system that covers **Arduino Uno + ESP8266 firmware*
 Reference implementation of the paper **"IoT-Powered Smart Kitchen Systems for Enhanced Efficiency and Safety"** by V. Gaikwad, P. Sahani, S. Khan, R. Sakpal, **S. Punde**, N. Shinde (Vishwakarma Institute of Technology, Pune).
 
 ![dashboard](docs/dashboard_gas_leak.png)
-*Replayed gas leak: the ML model raised the alarm at **442 ppm**. The fixed firmware threshold would only have fired at 1,000 ppm, more than 3 minutes later.*
+*Replayed gas leak: the ML model raised the alarm at **442 ppm**, while the fixed firmware threshold would only have fired at 1,000 ppm, more than 3 minutes later. (Screenshot taken with the earlier 10 s confirmation window.)*
 
 ## The problem
 
@@ -33,23 +33,26 @@ Cooking is the leading cause of home fires in US fire statistics (NFPA), and LPG
 
 The labelled dataset is 120 hours at 1 Hz (432,000 readings, 288 episodes). Train and test are split **by episode**, so no event leaks across the split.
 
-| | ML detector (10 s confirmation) | Fixed thresholds (firmware rules) |
+| | ML detector | Fixed thresholds (firmware rules) |
 |---|---|---|
-| Macro F1 (5 classes) | **0.988** | 0.541 |
-| Gas-leak detection delay (median) | **14 s** | 213 s |
-| Fire detection delay (median) | 9 s | 0 s (flame sensor) |
-| Unattended cooking: detected | **15 / 15** | 6 / 15 |
-| False alarms per day | **4.7** | 26.0 |
+| Macro F1 (5 classes) | **0.986** | 0.541 |
+| Gas-leak detection delay (median) | **12 s** | 213 s |
+| Fire detection delay (median) | 7 s | 0 s (flame sensor) |
+| Unattended cooking: detected | **15 / 15** (median 57 s after the 5-minute mark) | 6 / 15 |
+| False alarms per day | **0.79** | 26.0 |
 
-**Confirmation window trade-off.** Requiring N agreeing seconds before alerting trades speed for fewer false alarms:
+**Why the alarm windows differ by hazard.** For a family, false alarms matter as much as detection: an alarm that goes off several times a day gets switched off. So the system waits for a few seconds of agreeing predictions before alarming, and how long depends on how urgent the hazard is. Gas and fire are life-threatening, so they confirm in **8 s**. An unattended stove by definition means 5+ minutes with nobody there, so confirming it over **60 s** costs little, and it stops the alarm nagging a cook who just stepped away.
 
-| Confirm | Gas-leak delay | Fire delay | False alarms/day |
-|---|---|---|---|
-| 3 s | 6.5 s | 2 s | 15.8 |
-| 5 s | 9 s | 4 s | 10.2 |
-| **10 s (default)** | 14 s | 9 s | **4.7** |
+| Confirmation window | Gas-leak delay | Fire delay | Unattended delay | False alarms/day |
+|---|---|---|---|---|
+| 3 s for every hazard | 6.5 s | 2 s | 0 s | 15.8 |
+| 5 s for every hazard | 9 s | 4 s | 0 s | 10.2 |
+| 10 s for every hazard (previous default) | 14 s | 9 s | 4 s | 4.7 |
+| **8 s gas/fire, 60 s unattended (default)** | **12 s** | **7 s** | 57 s | **0.79** |
 
-Fire still triggers the local buzzer instantly through the flame-sensor rule on the Uno, so the cloud model can afford a 10-second confirmation.
+Compared with the previous 10 s default, gas and fire alarms are now *faster* and false alarms drop sixfold, with no hazard missed. Most of the old false alarms were the model briefly reading "unattended" while someone was still cooking. The live API (`kitchen/api.py`) uses the same per-hazard windows.
+
+Fire still triggers the local buzzer instantly through the flame-sensor rule on the Uno, so the cloud model can afford a short confirmation.
 
 > **About the data:** physical sensors weren't available in this environment, so `data/kitchen_sensor_dataset.csv.gz` comes from a physics-inspired simulator (`kitchen/simulator.py`). It models first-order thermal and gas dynamics, MQ-sensor humidity drift, DHT11 1 °C quantisation, PIR dropouts and false triggers, and flame-sensor misses. The firmware emits exactly the same JSON schema, so the pipeline runs unchanged on real hardware. Retrain on real recordings before relying on it for safety.
 
