@@ -13,3 +13,13 @@ identifiers:
   - type: other
     value: "sp2532-7876af216916"
     description: "Project identifier"
+references:
+  - type: generic
+    title: "IoT-Powered Smart Kitchen Systems for Enhanced Efficiency and Safety"
+    authors:
+      - name: "V. Gaikwad"
+      - name: "P. Sahani"
+      - name: "S. Khan"
+      - name: "R. Sakpal"
+      - name: "S. Punde"
+      - name: "N. Shinde"
