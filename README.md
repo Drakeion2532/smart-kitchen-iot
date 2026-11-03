@@ -106,3 +106,9 @@ kitchen/train_detector.py          training, latency & false-alarm evaluation
 kitchen/api.py                     FastAPI backend, alerting, inventory
 kitchen/static/dashboard.html      live dashboard
 ```
+
+## Licence and credit
+
+MIT © 2026 [Shubhan Punde](https://github.com/Drakeion2532). You're welcome to learn from and reuse this code; the licence requires keeping the copyright notice, and presenting the project as your own work is not permitted. To cite it, use [CITATION.cff](CITATION.cff).
+
+<sub>Project ID: sp2532-7876af216916</sub>
