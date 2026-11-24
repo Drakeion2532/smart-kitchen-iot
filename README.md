@@ -111,9 +111,15 @@ kitchen/static/dashboard.html      live dashboard
 
 The hazard detector ships as a `joblib` (pickle) file. The API only loads it if its SHA-256 matches `models/hazard_detector.joblib.sha256`, written at training time, because unpickling a tampered file can run code. Tests check that a flipped byte or a missing pin is refused.
 
+## Limits
+
+* The detector is trained and evaluated on simulated sensor data (see *About the data* above). Real MQ gas sensors drift and need calibration in each kitchen before these numbers can be trusted.
+* All 288 episodes come from one kitchen model; other layouts, stoves and ventilation will change the signals.
+* Gas-leak and unattended-cooking alerts depend on the ESP8266 reaching the backend. Only the flame-sensor rule on the Uno works offline.
+
 ## How this was built
 
-I designed the detection logic, threat model and evaluation, and used AI pair-programming (Claude Code) for implementation. Every number in this README was re-run and checked, and the test suite reproduces the key results.
+I designed the system architecture, sensor logic and evaluation, and used AI pair-programming (Claude Code) for implementation. Every number in this README was re-run and checked, and the test suite reproduces the key results.
 
 ## Licence
 
