@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Shubhan Punde · https://github.com/Drakeion2532/smart-kitchen-iot · MIT licence · sp2532-7876af216916
+# Copyright (c) 2026 Shubhan Punde · MIT licence
 """Streaming features. Everything is computed from the PAST only (rolling
 windows), so the same code works on the live stream and offline."""
 from __future__ import annotations

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Shubhan Punde · https://github.com/Drakeion2532/smart-kitchen-iot · MIT licence · sp2532-7876af216916
+// Copyright (c) 2026 Shubhan Punde · MIT licence
 /*
  * Smart Kitchen – Arduino Uno sensor controller
  * ------------------------------------------------

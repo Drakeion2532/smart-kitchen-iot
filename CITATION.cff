@@ -9,10 +9,6 @@ authors:
 repository-code: "https://github.com/Drakeion2532/smart-kitchen-iot"
 license: MIT
 date-released: "2026-11-03"
-identifiers:
-  - type: other
-    value: "sp2532-7876af216916"
-    description: "Project identifier"
 references:
   - type: generic
     title: "IoT-Powered Smart Kitchen Systems for Enhanced Efficiency and Safety"
