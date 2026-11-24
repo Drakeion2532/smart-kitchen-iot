@@ -20,7 +20,6 @@ import time
 from collections import defaultdict, deque
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, Header, HTTPException
@@ -28,6 +27,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from threadpoolctl import threadpool_limits
 
+from .integrity import load_verified
 from .features import add_features
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,7 +63,7 @@ class Engine:
         self.run = {}                                  # device -> (raw state, consecutive count)
         self.last_alert = {}
         self.state = {}
-        bundle = joblib.load(MODEL_PATH) if MODEL_PATH.exists() else None
+        bundle = load_verified(MODEL_PATH) if MODEL_PATH.exists() else None   # SHA-256 pinned; pickles can run code
         self.model = bundle["model"] if bundle else None
         self.features = bundle["features"] if bundle else None
         self.db = sqlite3.connect(db_path, check_same_thread=False)

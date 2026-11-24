@@ -17,6 +17,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import GroupShuffleSplit
 
+from .integrity import pin
 from .features import add_features, rule_based
 from .simulator import LABELS
 
@@ -94,6 +95,7 @@ def main():
                               "matrix": confusion_matrix(test["label"], ml_s, labels=LABELS).tolist()}
     (ROOT / "models").mkdir(exist_ok=True)
     joblib.dump({"model": clf, "features": list(X.columns)}, ROOT / "models" / "hazard_detector.joblib")
+    pin(ROOT / "models" / "hazard_detector.joblib")      # integrity pin checked by the API
     (ROOT / "results" / "detector_report.json").write_text(json.dumps(report, indent=2))
     print(json.dumps({k: v for k, v in report.items() if k != "confusion_ml"}, indent=2))
 

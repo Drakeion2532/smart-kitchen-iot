@@ -107,6 +107,10 @@ kitchen/api.py                     FastAPI backend, alerting, inventory
 kitchen/static/dashboard.html      live dashboard
 ```
 
+## Model integrity
+
+The hazard detector ships as a `joblib` (pickle) file. The API only loads it if its SHA-256 matches `models/hazard_detector.joblib.sha256`, written at training time, because unpickling a tampered file can run code. Tests check that a flipped byte or a missing pin is refused.
+
 ## How this was built
 
 I designed the detection logic, threat model and evaluation, and used AI pair-programming (Claude Code) for implementation. Every number in this README was re-run and checked, and the test suite reproduces the key results.
